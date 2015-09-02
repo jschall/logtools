@@ -14,6 +14,9 @@ while True:
 tot = 0
 gmbtot = 0
 imutot = 0
+ekftot = 0
+magtot = 0
+
 msg_usage = []
 for key,qty in parser.msg_count.iteritems():
     if qty > 0:
@@ -26,10 +29,18 @@ for key,qty in parser.msg_count.iteritems():
             gmbtot += msg_len*qty
         elif name.startswith('IMU'):
             imutot += msg_len*qty
+        elif name.startswith('EKF'):
+            ekftot += msg_len*qty
+        elif name.startswith('MAG'):
+            magtot += msg_len*qty
 
-msg_usage.append(("- TOTAL", tot))
-msg_usage.append(("- TOTAL_GMB", gmbtot))
-msg_usage.append(("- TOTAL_IMU", imutot))
+msg_usage.append(("_TOTAL", tot))
+msg_usage.append(("_TOTAL_GMB", gmbtot))
+msg_usage.append(("_TOTAL_IMU", imutot))
+msg_usage.append(("_TOTAL_EKF", ekftot))
+msg_usage.append(("_TOTAL_MAG", magtot))
+
+
 
 msg_usage.sort(key=lambda x:x[1], reverse=True)
 
