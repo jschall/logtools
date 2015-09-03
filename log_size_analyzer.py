@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from DFParser import DFParser
 from sys import argv
 
