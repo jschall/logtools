@@ -74,7 +74,7 @@ class DFMessage(object):
         self._elements = elements
         self._fieldnames = fmt.columns
 
-    def __getattr__(self, field):
+    def __getitem__(self, field):
         '''override field getter'''
         try:
             i = self.fmt.colhash[field]
