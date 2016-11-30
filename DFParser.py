@@ -133,6 +133,10 @@ class DFParser:
 
     def parse_next(self):
         header = self.data[self.offset:self.offset+3]
+
+        if len(header) < 3:
+            return None
+
         while ord(header[0]) != self.HEAD1 or ord(header[1]) != self.HEAD2 or ord(header[2]) not in self.formats:
             self.offset += 1
             if self.data_len - self.offset < 3:
