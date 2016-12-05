@@ -9,8 +9,6 @@ import json
 from multiprocessing import Pool
 from cStringIO import StringIO
 import argparse
-import webbrowser
-import os
 
 def get_versions(fn):
     re_apmver = re.compile(r"^APM:Copter.+\(([0-9a-fA-F]{8})\)$")
@@ -91,7 +89,8 @@ def get_time_series(fn, field_identifiers):
 
     return ret
 
-def generate_plot(plot_obj):
+def generate_plot(args):
+    bin_file, plot_obj = args
     if 'plots' not in plot_obj:
         return None
 
@@ -102,7 +101,7 @@ def generate_plot(plot_obj):
 
     fields = set(fields)
 
-    data = get_time_series(sys.argv[1], fields)
+    data = get_time_series(bin_file, fields)
 
     plt.clf()
     plt.figure(figsize=(21,9), dpi=160)
@@ -135,191 +134,51 @@ def generate_plot(plot_obj):
 
     plot_img_data = StringIO()
     plt.savefig(plot_img_data)
-    img = plot_img_data.getvalue().encode('base64')
-    return '<h2>%s</h2><img width="100%%" src="data:image/png;base64,%s" />\n' % (plot_obj['name'], img)
+    img = plot_img_data.getvalue()
+    return (plot_obj['name'], img)
 
-workers = Pool(4)
+def open_report(html):
+    import SimpleHTTPServer
+    import SocketServer
+    import webbrowser
+    import os
+    import threading
 
-plots = [
-    {
-        'name':'Flight mode',
-        'plots': [
-            {'fields': ['MODE.Mode']},
-        ],
-    },
-    {
-        'name':'FTS State',
-        'plots': [
-            {'fields': ['FTSS.State', 'FTSS.Rsn']},
-        ],
-    },
-    {
-        'name':'Throttle input and output',
-        'plots': [
-            {'fields': ['CTUN.ThI', 'CTUN.ThO']},
-        ],
-    },
-    {
-        'name':'Altitude',
-        'plots': [
-            {'y_unit': 'm', 'fields': ['CTUN.Alt', 'BARO.Alt']},
-        ],
-    },
-    {
-        'name':'Attitude control',
-        'plots': [
-            {'subplot':311, 'y_unit': 'Degrees', 'fields': ['ATT.Roll', 'ATT.DesRoll']},
-            {'subplot':312, 'y_unit': 'Degrees', 'fields': ['ATT.Pitch', 'ATT.DesPitch']},
-            {'subplot':313, 'y_unit': 'Degrees', 'fields': ['ATT.Yaw', 'ATT.DesYaw']},
+    class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path=='/plots':
+                self.send_response(200)
+                self.send_header('Content-type','text/html')
+                self.end_headers()
+                self.wfile.write(html)
+                return
+            else:
+                self.send_response(404)
+                return
 
-        ],
-    },
-    {
-        'name':'Motor outputs',
-        'plots': [
-            {'subplot':221, 'y_unit': 'PWM', 'fields': ['RCOU.C3']},
-            {'subplot':222, 'y_unit': 'PWM', 'fields': ['RCOU.C1']},
-            {'subplot':223, 'y_unit': 'PWM', 'fields': ['RCOU.C2']},
-            {'subplot':224, 'y_unit': 'PWM', 'fields': ['RCOU.C4']},
-        ],
-    },
-    {
-        'name':'Temperatures',
-        'plots': [
-            {'y_unit':'C', 'fields': ['FTSS.BTINT', 'FTSS.BTTS1', 'IMU.Temp', 'IMU2.Temp', 'IMU3.Temp', 'BARO.Temp', 'BAR2.Temp', 'BAR3.Temp']},
-        ],
-    },
-    {
-        'name':'Power',
-        'plots': [
-            {'subplot':411, 'y_unit':'V', 'fields': ['POWR.Vcc']},
-            {'subplot':412, 'y_unit':'V', 'fields': ['CURR.Volt']},
-            {'subplot':413, 'y_unit':'mV', 'fields': ['FTSS.BC1mV', 'FTSS.BC2mV', 'FTSS.BC3mV']},
-            {'subplot':414, 'y_unit':'pct', 'fields': ['FTSS.BSoC']},
-        ],
-    },
-    {
-        'name':'EKF Status',
-        'plots': [
-            {'subplot':411, 'fields': ['NKF4.PI']},
-            {'subplot':412, 'fields': ['NKF4.SS', 'NKF9.SS']},
-            {'subplot':413, 'fields': ['NKF4.GPS', 'NKF9.GPS']},
-            {'subplot':414, 'fields': ['NKF4.TS', 'NKF9.TS']},
-        ],
-    },
-    {
-        'name':'EKF2 IMU1 Health Metrics',
-        'plots': [
-            {'subplot':311, 'y_range': (0,0.1), 'fields': ['NKF4.errRP']},
-            {'subplot':312, 'fields': ['NKF3.IPN', 'NKF3.IPE', 'NKF3.IPD']},
-            {'subplot':313, 'fields': ['NKF4.SV', 'NKF4.SP', 'NKF4.SH', 'NKF4.SM']}
-        ],
-    },
-    {
-        'name':'EKF2 IMU2 Health Metrics',
-        'plots': [
-            {'subplot':311, 'y_range': (0,0.1), 'fields': ['NKF9.errRP']},
-            {'subplot':312, 'fields': ['NKF8.IPN', 'NKF8.IPE', 'NKF8.IPD']},
-            {'subplot':313, 'fields': ['NKF9.SV', 'NKF9.SP', 'NKF9.SH', 'NKF9.SM']}
-        ],
-    },
-    {
-        'name':'Attitude',
-        'plots': [
-            {'subplot':311, 'y_unit': 'Degrees', 'fields': ['NKF1.Roll', 'NKF6.Roll', 'AHR2.Roll']},
-            {'subplot':312, 'y_unit': 'Degrees', 'fields': ['NKF1.Pitch', 'NKF6.Pitch', 'AHR2.Pitch']},
-            {'subplot':313, 'y_unit': 'Degrees', 'fields': ['NKF1.Yaw', 'NKF6.Yaw', 'AHR2.Yaw']},
-        ],
-    },
-    {
-        'name':'IMU Vibration',
-        'plots': [
-            {'subplot':311, 'y_unit': 'm/s/s', 'fields': ['VIBE.VibeX']},
-            {'subplot':312, 'y_unit': 'm/s/s', 'fields': ['VIBE.VibeY']},
-            {'subplot':313, 'y_unit': 'm/s/s', 'fields': ['VIBE.VibeZ']},
-        ],
-    },
-    {
-        'name':'IMU Clipping',
-        'plots': [
-            {'fields': ['VIBE.Clip0', 'VIBE.Clip1', 'VIBE.Clip2']},
-        ],
-    },
-    {
-        'name':'Accelerometers',
-        'plots': [
-            {'subplot':311, 'y_unit': 'm/s/s', 'fields': ['IMU.AccX', 'IMU2.AccX', 'IMU3.AccX']},
-            {'subplot':312, 'y_unit': 'm/s/s', 'fields': ['IMU.AccY', 'IMU2.AccY', 'IMU3.AccY']},
-            {'subplot':313, 'y_unit': 'm/s/s', 'fields': ['IMU.AccZ', 'IMU2.AccZ', 'IMU3.AccZ']},
-        ],
-    },
-    {
-        'name':'Gyros',
-        'plots': [
-            {'subplot':311, 'y_unit': 'm/s/s', 'fields': ['IMU.GyrX', 'IMU2.GyrX', 'IMU3.GyrX']},
-            {'subplot':312, 'y_unit': 'm/s/s', 'fields': ['IMU.GyrY', 'IMU2.GyrY', 'IMU3.GyrY']},
-            {'subplot':313, 'y_unit': 'm/s/s', 'fields': ['IMU.GyrZ', 'IMU2.GyrZ', 'IMU3.GyrZ']},
-        ],
-    },
-    {
-        'name':'Magnetometer health',
-        'plots': [
-            {'subplot':311, 'fields': ['MAG.Health']},
-            {'subplot':312, 'fields': ['MAG2.Health']},
-            {'subplot':313, 'fields': ['MAG3.Health']},
-        ],
-    },
-    {
-        'name':'Magnetometers',
-        'plots': [
-            {'subplot':311, 'y_unit': 'mGa', 'fields': ['MAG.MagX', 'MAG2.MagX', 'MAG3.MagX']},
-            {'subplot':312, 'y_unit': 'mGa', 'fields': ['MAG.MagY', 'MAG2.MagY', 'MAG3.MagY']},
-            {'subplot':313, 'y_unit': 'mGa', 'fields': ['MAG.MagZ', 'MAG2.MagZ', 'MAG3.MagZ']},
-        ],
-    },
-    {
-        'name':'Rangefinder',
-        'plots': [
-            {'y_unit': 'm', 'fields': ['RFND.Dist1', 'CTUN.SAlt']},
-        ],
-    },
-    {
-        'name':'GPS Satellites',
-        'plots': [
-            {'subplot':211, 'fields': ['GPS.NSats']},
-            {'subplot':212, 'fields': ['GPS.HDop', 'GPA.VDop']},
-        ],
-    },
-    {
-        'name':'GPS Accuracy',
-        'plots': [
-            {'subplot':311, 'y_range': (0,10.), 'y_unit': 'm', 'fields': ['GPA.HAcc', 'GPA.VAcc']},
-            {'subplot':312, 'y_range': (0,3.), 'y_unit': 'm/s', 'fields': ['GPA.SAcc']},
-            {'subplot':313, 'fields': ['UBX1.jamInd']},
-        ],
-    },
-    {
-        'name':'Scheduler performance',
-        'plots': [
-            {'subplot':211, 'y_unit': 'us', 'y_range': (0,20000), 'fields': ['PM.MaxT']},
-            {'subplot':212, 'fields': ['PM.LogDrop']},
-        ],
-    },
-]
+    httpd = SocketServer.TCPServer(("", 0), CustomHandler)
+    threading.Thread(target=httpd.handle_request).start()
+    webbrowser.open_new('http://'+httpd.server_address[0]+':'+str(httpd.server_address[1])+'/plots')
 
+def generate_report(bin_file, plotsfile):
+    workers = Pool(4)
+    with open(plotsfile,'r') as f:
+        plots = json.load(f)['plots']
 
-plot_images = workers.map(generate_plot, plots)
+    plot_images = workers.map(generate_plot, [(bin_file, x) for x in plots])
 
-with open('out.html', 'w') as f:
-    f.write('<html><body>')
-    f.write('<h2>Component versions</h2>')
-    f.write('<table border=1><tr><th>Component</th><th>Version</th></tr>')
-    for v in get_versions(sys.argv[1]):
-        f.write('<tr><td>%s</td><td>%s</td></tr>' % v)
-    f.write('</table>')
+    html = ''
+    html += '<html><body>'
+    html += '<h1>%s</h1>' % bin_file
+    html += '<h2>Component versions</h2>'
+    html += '<table border=1><tr><th>Component</th><th>Version</th></tr>'
+    for v in get_versions(bin_file):
+        html += '<tr><td>%s</td><td>%s</td></tr>' % v
+    html += '</table>'
+    for name,img in plot_images:
+        html += '<h2>%s</h2><img width="100%%" src="data:image/png;base64,%s" /><br />' % (name, img.encode('base64'))
+    html += '</body></html>'
 
-    for img in plot_images:
-        f.write(img+'<br />')
-    f.write('</body></html>')
+    return html
 
-webbrowser.open_new('file://'+os.path.abspath('out.html'))
+open_report(generate_report(sys.argv[1], 'burnin-analysis.json'))

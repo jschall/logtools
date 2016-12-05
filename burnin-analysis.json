@@ -1,0 +1,165 @@
+{"plots": [
+    {
+        "name":"Flight mode",
+        "plots": [
+            {"fields": ["MODE.Mode"]}
+        ]
+    },
+    {
+        "name":"FTS State",
+        "plots": [
+            {"fields": ["FTSS.State", "FTSS.Rsn"]}
+        ]
+    },
+    {
+        "name":"Throttle input and output",
+        "plots": [
+            {"fields": ["CTUN.ThI", "CTUN.ThO"]}
+        ]
+    },
+    {
+        "name":"Altitude",
+        "plots": [
+            {"y_unit": "m", "fields": ["CTUN.Alt", "BARO.Alt"]}
+        ]
+    },
+    {
+        "name":"Attitude control",
+        "plots": [
+            {"subplot":311, "y_unit": "Degrees", "fields": ["ATT.Roll", "ATT.DesRoll"]},
+            {"subplot":312, "y_unit": "Degrees", "fields": ["ATT.Pitch", "ATT.DesPitch"]},
+            {"subplot":313, "y_unit": "Degrees", "fields": ["ATT.Yaw", "ATT.DesYaw"]}
+        ]
+    },
+    {
+        "name":"Motor outputs",
+        "plots": [
+            {"subplot":221, "y_unit": "PWM", "fields": ["RCOU.C3"]},
+            {"subplot":222, "y_unit": "PWM", "fields": ["RCOU.C1"]},
+            {"subplot":223, "y_unit": "PWM", "fields": ["RCOU.C2"]},
+            {"subplot":224, "y_unit": "PWM", "fields": ["RCOU.C4"]}
+        ]
+    },
+    {
+        "name":"Temperatures",
+        "plots": [
+            {"y_unit":"C", "fields": ["FTSS.BTINT", "FTSS.BTTS1", "IMU.Temp", "IMU2.Temp", "IMU3.Temp", "BARO.Temp", "BAR2.Temp", "BAR3.Temp"]}
+        ]
+    },
+    {
+        "name":"Power",
+        "plots": [
+            {"subplot":411, "y_unit":"V", "fields": ["POWR.Vcc"]},
+            {"subplot":412, "y_unit":"V", "fields": ["CURR.Volt"]},
+            {"subplot":413, "y_unit":"mV", "fields": ["FTSS.BC1mV", "FTSS.BC2mV", "FTSS.BC3mV"]},
+            {"subplot":414, "y_unit":"pct", "fields": ["FTSS.BSoC"]}
+        ]
+    },
+    {
+        "name":"EKF Status",
+        "plots": [
+            {"subplot":411, "fields": ["NKF4.PI"]},
+            {"subplot":412, "fields": ["NKF4.SS", "NKF9.SS"]},
+            {"subplot":413, "fields": ["NKF4.GPS", "NKF9.GPS"]},
+            {"subplot":414, "fields": ["NKF4.TS", "NKF9.TS"]}
+        ]
+    },
+    {
+        "name":"EKF2 IMU1 Health Metrics",
+        "plots": [
+            {"subplot":311, "y_range": [0,0.1], "fields": ["NKF4.errRP"]},
+            {"subplot":312, "fields": ["NKF3.IPN", "NKF3.IPE", "NKF3.IPD"]},
+            {"subplot":313, "fields": ["NKF4.SV", "NKF4.SP", "NKF4.SH", "NKF4.SM"]}
+        ]
+    },
+    {
+        "name":"EKF2 IMU2 Health Metrics",
+        "plots": [
+            {"subplot":311, "y_range": [0,0.1], "fields": ["NKF9.errRP"]},
+            {"subplot":312, "fields": ["NKF8.IPN", "NKF8.IPE", "NKF8.IPD"]},
+            {"subplot":313, "fields": ["NKF9.SV", "NKF9.SP", "NKF9.SH", "NKF9.SM"]}
+        ]
+    },
+    {
+        "name":"Attitude",
+        "plots": [
+            {"subplot":311, "y_unit": "Degrees", "fields": ["NKF1.Roll", "NKF6.Roll", "AHR2.Roll"]},
+            {"subplot":312, "y_unit": "Degrees", "fields": ["NKF1.Pitch", "NKF6.Pitch", "AHR2.Pitch"]},
+            {"subplot":313, "y_unit": "Degrees", "fields": ["NKF1.Yaw", "NKF6.Yaw", "AHR2.Yaw"]}
+        ]
+    },
+    {
+        "name":"IMU Vibration",
+        "plots": [
+            {"subplot":311, "y_unit": "m/s/s", "fields": ["VIBE.VibeX"]},
+            {"subplot":312, "y_unit": "m/s/s", "fields": ["VIBE.VibeY"]},
+            {"subplot":313, "y_unit": "m/s/s", "fields": ["VIBE.VibeZ"]}
+        ]
+    },
+    {
+        "name":"IMU Clipping",
+        "plots": [
+            {"fields": ["VIBE.Clip0", "VIBE.Clip1", "VIBE.Clip2"]}
+        ]
+    },
+    {
+        "name":"Accelerometers",
+        "plots": [
+            {"subplot":311, "y_unit": "m/s/s", "fields": ["IMU.AccX", "IMU2.AccX", "IMU3.AccX"]},
+            {"subplot":312, "y_unit": "m/s/s", "fields": ["IMU.AccY", "IMU2.AccY", "IMU3.AccY"]},
+            {"subplot":313, "y_unit": "m/s/s", "fields": ["IMU.AccZ", "IMU2.AccZ", "IMU3.AccZ"]}
+        ]
+    },
+    {
+        "name":"Gyros",
+        "plots": [
+            {"subplot":311, "y_unit": "m/s/s", "fields": ["IMU.GyrX", "IMU2.GyrX", "IMU3.GyrX"]},
+            {"subplot":312, "y_unit": "m/s/s", "fields": ["IMU.GyrY", "IMU2.GyrY", "IMU3.GyrY"]},
+            {"subplot":313, "y_unit": "m/s/s", "fields": ["IMU.GyrZ", "IMU2.GyrZ", "IMU3.GyrZ"]}
+        ]
+    },
+    {
+        "name":"Magnetometer health",
+        "plots": [
+            {"subplot":311, "fields": ["MAG.Health"]},
+            {"subplot":312, "fields": ["MAG2.Health"]},
+            {"subplot":313, "fields": ["MAG3.Health"]}
+        ]
+    },
+    {
+        "name":"Magnetometers",
+        "plots": [
+            {"subplot":311, "y_unit": "mGa", "fields": ["MAG.MagX", "MAG2.MagX", "MAG3.MagX"]},
+            {"subplot":312, "y_unit": "mGa", "fields": ["MAG.MagY", "MAG2.MagY", "MAG3.MagY"]},
+            {"subplot":313, "y_unit": "mGa", "fields": ["MAG.MagZ", "MAG2.MagZ", "MAG3.MagZ"]}
+        ]
+    },
+    {
+        "name":"Rangefinder",
+        "plots": [
+            {"y_unit": "m", "fields": ["RFND.Dist1", "CTUN.SAlt"]}
+        ]
+    },
+    {
+        "name":"GPS Satellites",
+        "plots": [
+            {"subplot":211, "fields": ["GPS.NSats"]},
+            {"subplot":212, "fields": ["GPS.HDop", "GPA.VDop"]}
+        ]
+    },
+    {
+        "name":"GPS Accuracy",
+        "plots": [
+            {"subplot":311, "y_range": [0,10], "y_unit": "m", "fields": ["GPA.HAcc", "GPA.VAcc"]},
+            {"subplot":312, "y_range": [0,3], "y_unit": "m/s", "fields": ["GPA.SAcc"]},
+            {"subplot":313, "fields": ["UBX1.jamInd"]}
+        ]
+    },
+    {
+        "name":"Scheduler performance",
+        "plots": [
+            {"subplot":211, "y_unit": "us", "y_range": [0,20000], "fields": ["PM.MaxT"]},
+            {"subplot":212, "fields": ["PM.LogDrop"]}
+        ]
+    }
+]}
