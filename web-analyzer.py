@@ -9,6 +9,8 @@ import json
 from multiprocessing import Pool
 from cStringIO import StringIO
 import argparse
+import webbrowser
+import os
 
 def get_versions(fn):
     re_apmver = re.compile(r"^APM:Copter.+\(([0-9a-fA-F]{8})\)$")
@@ -117,10 +119,18 @@ def generate_plot(plot_obj):
         for f in p['fields']:
             plt.plot(data[f][0],data[f][1],label=f)
 
+        x1,x2,y1,y2 = plt.axis()
         if 'y_range' in p:
-            x1,x2,y1,y2 = plt.axis()
-            plt.axis([None,None,p['y_range'][0],p['y_range'][1]])
+            y1 = p['y_range'][0]
+            y2 = p['y_range'][1]
 
+        margin = (y2-y1)*0.05
+        y1 = y1-margin
+        y2 = y2+margin
+        margin = (x2-x1)*0.05
+        x1 = x1-margin
+        x2 = x2+margin
+        plt.axis([x1,x2,y1,y2])
         plt.legend()
 
     plot_img_data = StringIO()
@@ -182,9 +192,10 @@ plots = [
     {
         'name':'Power',
         'plots': [
-            {'subplot':311, 'y_unit':'mV', 'fields': ['CURR.Volt']},
-            {'subplot':312, 'y_unit':'mV', 'fields': ['FTSS.BC1mV', 'FTSS.BC2mV', 'FTSS.BC3mV']},
-            {'subplot':313, 'y_unit':'pct', 'fields': ['FTSS.BSoC']},
+            {'subplot':411, 'y_unit':'V', 'fields': ['POWR.Vcc']},
+            {'subplot':412, 'y_unit':'V', 'fields': ['CURR.Volt']},
+            {'subplot':413, 'y_unit':'mV', 'fields': ['FTSS.BC1mV', 'FTSS.BC2mV', 'FTSS.BC3mV']},
+            {'subplot':414, 'y_unit':'pct', 'fields': ['FTSS.BSoC']},
         ],
     },
     {
@@ -199,15 +210,17 @@ plots = [
     {
         'name':'EKF2 IMU1 Health Metrics',
         'plots': [
-            {'subplot':211, 'y_range': (0,0.1), 'fields': ['NKF4.errRP']},
-            {'subplot':212, 'fields': ['NKF4.SV', 'NKF4.SP', 'NKF4.SH', 'NKF4.SM']}
+            {'subplot':311, 'y_range': (0,0.1), 'fields': ['NKF4.errRP']},
+            {'subplot':312, 'fields': ['NKF3.IPN', 'NKF3.IPE', 'NKF3.IPD']},
+            {'subplot':313, 'fields': ['NKF4.SV', 'NKF4.SP', 'NKF4.SH', 'NKF4.SM']}
         ],
     },
     {
         'name':'EKF2 IMU2 Health Metrics',
         'plots': [
-            {'subplot':211, 'y_range': (0,0.1), 'fields': ['NKF9.errRP']},
-            {'subplot':212, 'fields': ['NKF9.SV', 'NKF9.SP', 'NKF9.SH', 'NKF9.SM']}
+            {'subplot':311, 'y_range': (0,0.1), 'fields': ['NKF9.errRP']},
+            {'subplot':312, 'fields': ['NKF8.IPN', 'NKF8.IPE', 'NKF8.IPD']},
+            {'subplot':313, 'fields': ['NKF9.SV', 'NKF9.SP', 'NKF9.SH', 'NKF9.SM']}
         ],
     },
     {
@@ -249,6 +262,14 @@ plots = [
         ],
     },
     {
+        'name':'Magnetometer health',
+        'plots': [
+            {'subplot':311, 'fields': ['MAG.Health']},
+            {'subplot':312, 'fields': ['MAG2.Health']},
+            {'subplot':313, 'fields': ['MAG3.Health']},
+        ],
+    },
+    {
         'name':'Magnetometers',
         'plots': [
             {'subplot':311, 'y_unit': 'mGa', 'fields': ['MAG.MagX', 'MAG2.MagX', 'MAG3.MagX']},
@@ -272,8 +293,8 @@ plots = [
     {
         'name':'GPS Accuracy',
         'plots': [
-            {'subplot':311, 'y_unit': 'm', 'fields': ['GPA.HAcc', 'GPA.VAcc']},
-            {'subplot':312, 'y_unit': 'm/s', 'fields': ['GPA.SAcc']},
+            {'subplot':311, 'y_range': (0,10.), 'y_unit': 'm', 'fields': ['GPA.HAcc', 'GPA.VAcc']},
+            {'subplot':312, 'y_range': (0,3.), 'y_unit': 'm/s', 'fields': ['GPA.SAcc']},
             {'subplot':313, 'fields': ['UBX1.jamInd']},
         ],
     },
@@ -300,3 +321,5 @@ with open('out.html', 'w') as f:
     for img in plot_images:
         f.write(img+'<br />')
     f.write('</body></html>')
+
+webbrowser.open_new('file://'+os.path.abspath('out.html'))
