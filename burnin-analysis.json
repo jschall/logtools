@@ -113,9 +113,9 @@
     {
         "name":"Gyros",
         "plots": [
-            {"subplot":311, "y_unit": "m/s/s", "fields": ["IMU.GyrX", "IMU2.GyrX", "IMU3.GyrX"]},
-            {"subplot":312, "y_unit": "m/s/s", "fields": ["IMU.GyrY", "IMU2.GyrY", "IMU3.GyrY"]},
-            {"subplot":313, "y_unit": "m/s/s", "fields": ["IMU.GyrZ", "IMU2.GyrZ", "IMU3.GyrZ"]}
+            {"subplot":311, "y_unit": "rad/s", "fields": ["IMU.GyrX", "IMU2.GyrX", "IMU3.GyrX"]},
+            {"subplot":312, "y_unit": "rad/s", "fields": ["IMU.GyrY", "IMU2.GyrY", "IMU3.GyrY"]},
+            {"subplot":313, "y_unit": "rad/s", "fields": ["IMU.GyrZ", "IMU2.GyrZ", "IMU3.GyrZ"]}
         ]
     },
     {
