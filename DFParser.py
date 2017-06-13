@@ -95,7 +95,7 @@ class DFMessage(object):
         ret = "%s {" % self.fmt.name
         col_count = 0
         for c in self.fmt.columns:
-            ret += "%s : %s, " % (c, self.__getattr__(c))
+            ret += "%s : %s, " % (c, self.__getitem__(c))
             col_count += 1
         if col_count != 0:
             ret = ret[:-2]
@@ -111,7 +111,7 @@ class DFMessage(object):
             name = self.fmt.columns[i]
             if name == 'Mode' and 'ModeNum' in self.fmt.columns:
                 name = 'ModeNum'
-            v = self.__getattr__(name)
+            v = self.__getitem__(name)
             if mul is not None:
                 v /= mul
             values.append(v)
@@ -137,7 +137,7 @@ class DFParser:
         if len(header) < 3:
             return None
 
-        while ord(header[0]) != self.HEAD1 or ord(header[1]) != self.HEAD2 or ord(header[2]) not in self.formats:
+        while ord(header[0]) != self.HEAD1 or ord(header[1]) != self.HEAD2 or ord(header[2]) not in self.formats.keys():
             self.offset += 1
             if self.data_len - self.offset < 3:
                 #end of log
