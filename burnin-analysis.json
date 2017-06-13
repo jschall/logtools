@@ -8,7 +8,13 @@
     {
         "name":"FTS State",
         "plots": [
-            {"fields": ["FTSS.State", "FTSS.Rsn"]}
+            {"fields": ["FTSS.State", "FTSS.Rsn", "FTS2.Fuse"]}
+        ]
+    },
+    {
+        "name":"FTS Watchdog Margin",
+        "plots": [
+            {"fields": ["FTS2.WDTm"]}
         ]
     },
     {
@@ -137,7 +143,7 @@
     {
         "name":"Rangefinder",
         "plots": [
-            {"y_unit": "m", "fields": ["RFND.Dist1", "CTUN.SAlt"]}
+            {"y_unit": "m", "fields": ["RFND.Dist1", "RFND.Dist2", "CTUN.SAlt"]}
         ]
     },
     {
