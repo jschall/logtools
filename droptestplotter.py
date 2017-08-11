@@ -55,17 +55,17 @@ for i in range(len(time_us)):
     if trigger_us is None:
         if acc[i] < trigger and abs(delay_buffer[0][1]) < freefall_thresh:
             trigger_us = time_us[i]
-            events.append([((x[0]-trigger_us+pre_trigger_us)*1e-6, x[1]) for x in delay_buffer])
+            events.append([((x[0]-trigger_us+pre_trigger_us)*1e-6, x[1]/9.81) for x in delay_buffer])
 
     if trigger_us is not None:
         if time_us[i] > trigger_us+blanking_time_us:
             trigger_us = None
         elif time_us[i] < trigger_us+post_trigger_us:
-            events[-1].append(((time_us[i]-trigger_us+pre_trigger_us)*1e-6, acc[i]))
+            events[-1].append(((time_us[i]-trigger_us+pre_trigger_us)*1e-6, acc[i]/9.81))
 
 plt.figure(figsize=(9,9), dpi=160)
 plt.title(argv[1])
-plt.axis([0,event_length,-9.81*16,9.81*16])
+plt.axis([0,event_length,-16,16])
 
 for e in events:
     plt.plot(*zip(*e))
