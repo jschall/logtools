@@ -20,8 +20,7 @@ def get_versions(fn):
     ftsver = None
 
     f = open(fn,'rb')
-    parser = DFParser(f.read())
-    f.close()
+    parser = DFParser(f)
 
     while True:
         m = parser.parse_next()
@@ -44,6 +43,8 @@ def get_versions(fn):
         if apmver is not None and px4ver is not None and nuttxver is not None and ftsver is not None:
             break
 
+    f.close()
+
     return (('ardupilot',apmver), ('PX4',px4ver), ('NuttX',nuttxver), ('FTS',ftsver))
 
 def split_field_identifier(field_identifier):
@@ -55,8 +56,7 @@ def combine_field_identifier(msg_name, field_name):
 
 def get_time_series(fn, field_identifiers):
     f = open(fn,'rb')
-    parser = DFParser(f.read())
-    f.close()
+    parser = DFParser(f)
 
     split_field_names = [split_field_identifier(x) for x in field_identifiers]
     msg_names = set([x[0] for x in split_field_names])
@@ -87,6 +87,8 @@ def get_time_series(fn, field_identifiers):
                 field_identifier = combine_field_identifier(msg_name,field_name)
                 ret[field_identifier][1].append(m[field_name])
 
+    f.close()
+
     return ret
 
 def generate_plot(args):
@@ -103,7 +105,6 @@ def generate_plot(args):
 
     data = get_time_series(bin_file, fields)
 
-    plt.clf()
     plt.figure(figsize=(21,9), dpi=160)
 
     for p in plot_obj['plots']:
@@ -134,6 +135,7 @@ def generate_plot(args):
 
     plot_img_data = StringIO()
     plt.savefig(plot_img_data)
+    plt.close()
     img = plot_img_data.getvalue()
     return (plot_obj['name'], img)
 
@@ -161,7 +163,7 @@ def open_report(html):
     webbrowser.open_new('http://'+httpd.server_address[0]+':'+str(httpd.server_address[1])+'/plots')
 
 def generate_report(bin_file, plotsfile):
-    workers = Pool(2)
+    workers = Pool(30)
     with open(plotsfile,'r') as f:
         plots = json.load(f)['plots']
 

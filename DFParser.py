@@ -4,6 +4,7 @@ Derivative work of pymavlink/DFReader.py
 '''
 
 import struct
+import os
 
 def null_term(str):
     '''null terminate a string'''
@@ -118,11 +119,15 @@ class DFMessage(object):
         return struct.pack("BBB", 0xA3, 0x95, self.fmt.type) + struct.pack(self.fmt.msg_struct, *values)
 
 class DFParser:
-    def __init__(self,data):
+    def __init__(self,f):
         self.HEAD1 = 0xA3
         self.HEAD2 = 0x95
-        self.data = data
-        self.data_len = len(self.data)
+
+        self.f = f
+        f.seek(0, os.SEEK_END)
+        self.data_len = f.tell()
+        f.seek(0, os.SEEK_SET)
+
         self.formats = {
             0x80: DFFormat(0x80, 'FMT', 89, 'BBnNZ', "Type,Length,Name,Format,Columns")
         }
@@ -132,7 +137,10 @@ class DFParser:
         self.offset = 0
 
     def parse_next(self):
-        header = self.data[self.offset:self.offset+3]
+        f = self.f
+
+        f.seek(self.offset, os.SEEK_SET)
+        header = f.read(3)
 
         if len(header) < 3:
             return None
@@ -150,7 +158,10 @@ class DFParser:
         if self.data_len-self.offset < fmt.len:
             #end of log
             return None
-        body = self.data[self.offset+3:self.offset+fmt.len]
+
+        f.seek(self.offset+3, os.SEEK_SET)
+        body = f.read(fmt.len-3)
+
         try:
             elements = list(struct.unpack(fmt.msg_struct,body))
         except Exception:

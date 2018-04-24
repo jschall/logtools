@@ -49,14 +49,14 @@
     {
         "name":"Temperatures",
         "plots": [
-            {"y_unit":"C", "fields": ["FTSS.BTINT", "FTSS.BTTS1", "IMU.Temp", "IMU2.Temp", "IMU3.Temp", "BARO.Temp", "BAR2.Temp", "BAR3.Temp"]}
+            {"y_unit":"C", "fields": ["FTSS.BTINT", "FTSS.BTTS1", "IMU.T", "IMU2.T", "IMU3.T", "BARO.Temp", "BAR2.Temp", "BAR3.Temp"]}
         ]
     },
     {
         "name":"Power",
         "plots": [
             {"subplot":411, "y_unit":"V", "fields": ["POWR.Vcc"]},
-            {"subplot":412, "y_unit":"V", "fields": ["CURR.Volt"]},
+            {"subplot":412, "y_unit":"V", "fields": ["BAT.Volt"]},
             {"subplot":413, "y_unit":"mV", "fields": ["FTSS.BC1mV", "FTSS.BC2mV", "FTSS.BC3mV"]},
             {"subplot":414, "y_unit":"pct", "fields": ["FTSS.BSoC"]}
         ]
