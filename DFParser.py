@@ -175,10 +175,13 @@ class DFParser:
         name = null_term(fmt.name)
 
         if name == 'FMT':
-            self.formats[elements[0]] = DFFormat(elements[0],
-                                                 null_term(elements[2]), elements[1],
-                                                 null_term(elements[3]), null_term(elements[4]))
-            self.msg_count[elements[0]] = 0
+            try:
+                self.formats[elements[0]] = DFFormat(elements[0],
+                                                    null_term(elements[2]), elements[1],
+                                                    null_term(elements[3]), null_term(elements[4]))
+                self.msg_count[elements[0]] = 0
+            except:
+                pass
 
         self.offset += fmt.len
 
