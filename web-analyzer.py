@@ -3,7 +3,6 @@ from DFParser import DFParser
 import sys
 from math import *
 import re
-from scipy.signal import welch
 import matplotlib.pyplot as plt
 import json
 from multiprocessing import Pool
@@ -163,7 +162,7 @@ def open_report(html):
     webbrowser.open_new('http://'+httpd.server_address[0]+':'+str(httpd.server_address[1])+'/plots')
 
 def generate_report(bin_file, plotsfile):
-    workers = Pool(30)
+    workers = Pool(4)
     with open(plotsfile,'r') as f:
         plots = json.load(f)['plots']
 
