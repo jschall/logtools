@@ -55,10 +55,11 @@
     {
         "name":"Power",
         "plots": [
-            {"subplot":411, "y_unit":"V", "fields": ["POWR.Vcc"]},
-            {"subplot":412, "y_unit":"V", "fields": ["BAT.Volt"]},
-            {"subplot":413, "y_unit":"mV", "fields": ["FTSS.BC1mV", "FTSS.BC2mV", "FTSS.BC3mV"]},
-            {"subplot":414, "y_unit":"pct", "fields": ["FTSS.BSoC"]}
+            {"subplot":511, "y_unit":"V", "fields": ["POWR.Vcc"]},
+            {"subplot":512, "y_unit":"V", "fields": ["BAT.Volt"]},
+            {"subplot":513, "y_unit":"A", "fields": ["BAT.Curr"]},
+            {"subplot":514, "y_unit":"mV", "fields": ["FTSS.BC1mV", "FTSS.BC2mV", "FTSS.BC3mV"]},
+            {"subplot":515, "y_unit":"pct", "fields": ["FTSS.BSoC"]}
         ]
     },
     {
