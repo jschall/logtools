@@ -3,6 +3,8 @@ from DFParser import DFParser
 import sys
 from math import *
 import re
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
 from multiprocessing import Pool
@@ -182,4 +184,6 @@ def generate_report(bin_file, plotsfile):
 
     return html
 
-open_report(generate_report(sys.argv[2], sys.argv[1]))
+if __name__ == '__main__':
+    with open(sys.argv[3], 'wb') as f:
+        f.write(generate_report(sys.argv[2], sys.argv[1]))
