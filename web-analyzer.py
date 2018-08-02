@@ -182,4 +182,4 @@ def generate_report(bin_file, plotsfile):
 
     return html
 
-open_report(generate_report(sys.argv[1], 'burnin-analysis.json'))
+open_report(generate_report(sys.argv[2], sys.argv[1]))
