@@ -5,6 +5,7 @@ Derivative work of pymavlink/DFReader.py
 
 import struct
 import os
+import re
 
 def null_term(str):
     '''null terminate a string'''
@@ -33,8 +34,9 @@ class DFFormat(object):
             "L": ("i", 1.0e-7, float),
             "d": ("d", None, float),
             "M": ("b", None, int),
-            "q": ("q", None, long),
-            "Q": ("Q", None, long),
+            "q": ("q", None, int),
+            "Q": ("Q", None, int),
+            "a": ("32h", None, tuple)
         }
         self.type = type
         self.name = name
@@ -48,6 +50,7 @@ class DFFormat(object):
         msg_struct = "<"
         msg_mults = []
         msg_types = []
+
         for c in format:
             if ord(c) == 0:
                 break
@@ -135,6 +138,14 @@ class DFParser:
             0x80: 0
         }
         self.offset = 0
+        self.cbs = []
+
+    def go(self):
+        while self.parse_next() is not None:
+            continue
+
+    def register_cb(self,cb):
+        self.cbs.append(cb)
 
     def parse_next(self):
         f = self.f
@@ -145,13 +156,13 @@ class DFParser:
         if len(header) < 3:
             return None
 
-        while ord(header[0]) != self.HEAD1 or ord(header[1]) != self.HEAD2 or ord(header[2]) not in self.formats.keys():
+        while header[0] != self.HEAD1 or header[1] != self.HEAD2 or header[2] not in self.formats.keys():
             self.offset += 1
             if self.data_len - self.offset < 3:
                 #end of log
                 return None
 
-        msg_type = ord(header[2])
+        msg_type = header[2]
 
         fmt = self.formats[msg_type]
 
@@ -176,8 +187,8 @@ class DFParser:
 
         if name == 'FMT':
             self.formats[elements[0]] = DFFormat(elements[0],
-                                                 null_term(elements[2]), elements[1],
-                                                 null_term(elements[3]), null_term(elements[4]))
+                                                 null_term(elements[2].decode('UTF8')), elements[1],
+                                                 null_term(elements[3].decode('UTF8')), null_term(elements[4].decode('UTF8')))
             self.msg_count[elements[0]] = 0
 
         self.offset += fmt.len
@@ -186,5 +197,8 @@ class DFParser:
             m = DFMessage(fmt, elements)
         except ValueError:
             return self.parse_next()
+
+        for cb in self.cbs:
+            cb(m)
 
         return m
