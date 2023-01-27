@@ -8,14 +8,22 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include "BlockingCollection.h"
+#include <thread>
 
 using namespace std;
+using namespace code_machina;
 
 #define HEAD_BYTE1  0xA3    // Decimal 163
 #define HEAD_BYTE2  0x95    // Decimal 149
 
 class DFLogParser {
 public:
+    typedef struct {
+        uint8_t type;
+        vector<uint8_t> body;
+    } message_t;
+
     typedef struct {
         typedef struct {
             char typechar;
@@ -30,6 +38,9 @@ public:
         vector<Field> fields;
     } Format;
 
+
+    DFLogParser(const DFLogParser&) = delete;
+    DFLogParser& operator=(const DFLogParser&) = delete;
     DFLogParser(istream& infile) : _if(infile) {
         _formats[0x80] = {
             0x80,
@@ -43,10 +54,18 @@ public:
                 {'Z',"Columns",22,64}
             }
         };
+
+        // start parsing thread
+        thread parse_thread(&DFLogParser::parse_thread_func, this);
+        parse_thread.detach();
     }
 
-    Format::Field* get_field_definition(int type, const string& fieldname) {
-        auto& fields = _formats[type].fields;
+    string get_message_name(const message_t& msg) {
+        return _formats[msg.type].name;
+    }
+
+    Format::Field* get_field_definition(const message_t& msg, const string& fieldname) {
+        auto& fields = _formats[msg.type].fields;
         for (auto& f : fields) {
             if (f.name == fieldname) {
                 return &f;
@@ -56,77 +75,77 @@ public:
     }
 
     template <typename T>
-    bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, T& ret) {
-        Format::Field* field_ptr = get_field_definition(type, fieldname);
+    bool get_scalar_field(const message_t& msg, const string& fieldname, T& ret) {
+        Format::Field* field_ptr = get_field_definition(msg, fieldname);
         if (!field_ptr) return false;
         Format::Field& field = *field_ptr;
 
         switch(field.typechar) {
             case 'B':
             case 'M':
-                ret = (T)*reinterpret_cast<const uint8_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint8_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'b':
-                ret = (T)*reinterpret_cast<const int8_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int8_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'h':
-                ret = (T)*reinterpret_cast<const int16_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int16_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'H':
-                ret = (T)*reinterpret_cast<const uint16_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint16_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'i':
-                ret = (T)*reinterpret_cast<const int32_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int32_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'I':
-                ret = (T)*reinterpret_cast<const uint32_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'q':
-                ret = (T)*reinterpret_cast<const int64_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int64_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'Q':
-                ret = (T)*reinterpret_cast<const uint64_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint64_t*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'f':
-                ret = (T)*reinterpret_cast<const float*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const float*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'L':
-                ret = (T)*reinterpret_cast<const uint32_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body.data()[field.ofs]);
                 ret /= 1e7;
                 return true;
             case 'd':
-                ret = (T)*reinterpret_cast<const double*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const double*>(&msg.body.data()[field.ofs]);
                 return true;
             case 'c':
-                ret = (T)*reinterpret_cast<const int16_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int16_t*>(&msg.body.data()[field.ofs]);
                 ret /= 100;
                 return true;
             case 'C':
-                ret = (T)*reinterpret_cast<const uint16_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint16_t*>(&msg.body.data()[field.ofs]);
                 ret /= 100;
                 return true;
             case 'e':
-                ret = (T)*reinterpret_cast<const int32_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int32_t*>(&msg.body.data()[field.ofs]);
                 ret /= 100;
                 return true;
             case 'E':
-                ret = (T)*reinterpret_cast<const uint32_t*>(&msgbody.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body.data()[field.ofs]);
                 ret /= 100;
                 return true;
         }
         return false;
     }
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, uint8_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, int8_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, uint16_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, int16_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, uint32_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, int32_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, int64_t& ret);
-    template<typename T> bool get_scalar_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, uint64_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint8_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, int8_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint16_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, int16_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint32_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, int32_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, int64_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint64_t& ret);
 
-    bool get_string_field(int type, const string& fieldname, const vector<uint8_t>& msgbody, string& ret) {
-        Format::Field* field_ptr = get_field_definition(type, fieldname);
+    bool get_string_field(const message_t& msg, const string& fieldname, string& ret) {
+        Format::Field* field_ptr = get_field_definition(msg, fieldname);
         if (!field_ptr) return false;
         Format::Field& field = *field_ptr;
 
@@ -136,8 +155,8 @@ public:
             case 'Z': {
                 ret = "";
                 for (int i=field.ofs; i<field.ofs+field.len; i++) {
-                    if (msgbody[i] == 0) break;
-                    ret.push_back((char)msgbody[i]);
+                    if (msg.body[i] == 0) break;
+                    ret.push_back((char)msg.body[i]);
                 }
                 return true;
             }
@@ -145,19 +164,19 @@ public:
         return false;
     }
 
-    void process_fmt(const vector<uint8_t>& msgbody) {
+    void process_fmt(const message_t& msg) {
         Format new_format;
 
-        get_scalar_field(0x80, "Type", msgbody, new_format.type);
-        get_scalar_field(0x80, "Length", msgbody, new_format.len);
+        get_scalar_field(msg, "Type", new_format.type);
+        get_scalar_field(msg, "Length", new_format.len);
 
-        get_string_field(0x80, "Name", msgbody, new_format.name);
+        get_string_field(msg, "Name", new_format.name);
         string fmtstr;
-        get_string_field(0x80, "Format", msgbody, fmtstr);
+        get_string_field(msg, "Format", fmtstr);
         vector<string> fieldnames;
 
         string colstr;
-        get_string_field(0x80, "Columns", msgbody, colstr);
+        get_string_field(msg, "Columns", colstr);
         boost::split(fieldnames, colstr, boost::is_any_of(","));
 
         assert(fieldnames.size() == fmtstr.length());
@@ -173,9 +192,31 @@ public:
         _formats[int(new_format.type)] = new_format;
     }
 
-    bool next_msg_body(uint8_t& type, vector<uint8_t>& msgbody) {
-        msgbody.clear();
+    bool next_message(message_t& msg) {
+        auto status = _msgqueue.take(msg);
+        return status == BlockingCollectionStatus::Ok;
+    }
 
+private:
+
+    void parse_thread_func() {
+//         _msgqueue.attach_producer();
+
+        message_t msg;
+        while (parse_next(msg)) {
+
+            if (msg.type == 0x80) {
+                process_fmt(msg);
+            }
+
+            _msgqueue.add(msg);
+        }
+
+        _msgqueue.complete_adding();
+//         _msgqueue.detach_producer();
+    }
+
+    bool parse_next(message_t& msg) {
         uint8_t header[3];
         _if.read((char*)header, 3);
 
@@ -194,32 +235,23 @@ public:
             cerr << "skipped " << skip_count << " bytes: " << bytes.str() << endl;
         }
 
-        type = header[2];
+        msg.type = header[2];
 
-        int body_len = _formats[type].len-3;
+        int body_len = _formats[msg.type].len-3;
 
-        msgbody.resize(body_len);
+        msg.body.resize(body_len);
 
-        if(!_if.read(reinterpret_cast<char*>(msgbody.data()), body_len)) {
+        if(!_if.read(reinterpret_cast<char*>(msg.body.data()), body_len)) {
             cout << "read failed" << endl;
             return false;
-        }
-
-        if (type == 0x80) {
-            process_fmt(msgbody);
         }
 
         return true;
     }
 
-private:
-
-    typedef struct {
-        uint8_t type;
-        vector<uint8_t> data;
-    } message_t;
     istream& _if;
     map<uint8_t,Format> _formats;
+    BlockingCollection<message_t> _msgqueue;
 
     map<char,uint8_t> _fieldsizemap = {
         {'b', 1},
