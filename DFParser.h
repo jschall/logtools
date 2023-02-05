@@ -8,7 +8,10 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "BlockingCollection.h"
+#pragma GCC diagnostic pop
 #include <thread>
 
 using namespace std;
@@ -17,11 +20,11 @@ using namespace code_machina;
 #define HEAD_BYTE1  0xA3    // Decimal 163
 #define HEAD_BYTE2  0x95    // Decimal 149
 
-class DFLogParser {
+class DFParser {
 public:
     typedef struct {
         uint8_t type;
-        vector<uint8_t> body;
+        uint8_t* body;
     } message_t;
 
     typedef struct {
@@ -39,9 +42,9 @@ public:
     } Format;
 
 
-    DFLogParser(const DFLogParser&) = delete;
-    DFLogParser& operator=(const DFLogParser&) = delete;
-    DFLogParser(istream& infile) : _if(infile) {
+    DFParser(const DFParser&) = delete;
+    DFParser& operator=(const DFParser&) = delete;
+    DFParser(uint8_t* logdata, size_t logdata_len) : _logdata(logdata), _logdata_len(logdata_len) {
         _formats[0x80] = {
             0x80,
             "FMT",
@@ -56,7 +59,7 @@ public:
         };
 
         // start parsing thread
-        thread parse_thread(&DFLogParser::parse_thread_func, this);
+        thread parse_thread(&DFParser::parse_thread_func, this);
         parse_thread.detach();
     }
 
@@ -83,53 +86,53 @@ public:
         switch(field.typechar) {
             case 'B':
             case 'M':
-                ret = (T)*reinterpret_cast<const uint8_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint8_t*>(&msg.body[field.ofs]);
                 return true;
             case 'b':
-                ret = (T)*reinterpret_cast<const int8_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int8_t*>(&msg.body[field.ofs]);
                 return true;
             case 'h':
-                ret = (T)*reinterpret_cast<const int16_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int16_t*>(&msg.body[field.ofs]);
                 return true;
             case 'H':
-                ret = (T)*reinterpret_cast<const uint16_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint16_t*>(&msg.body[field.ofs]);
                 return true;
             case 'i':
-                ret = (T)*reinterpret_cast<const int32_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int32_t*>(&msg.body[field.ofs]);
                 return true;
             case 'I':
-                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body[field.ofs]);
                 return true;
             case 'q':
-                ret = (T)*reinterpret_cast<const int64_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int64_t*>(&msg.body[field.ofs]);
                 return true;
             case 'Q':
-                ret = (T)*reinterpret_cast<const uint64_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint64_t*>(&msg.body[field.ofs]);
                 return true;
             case 'f':
-                ret = (T)*reinterpret_cast<const float*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const float*>(&msg.body[field.ofs]);
                 return true;
             case 'L':
-                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body[field.ofs]);
                 ret /= 1e7;
                 return true;
             case 'd':
-                ret = (T)*reinterpret_cast<const double*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const double*>(&msg.body[field.ofs]);
                 return true;
             case 'c':
-                ret = (T)*reinterpret_cast<const int16_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int16_t*>(&msg.body[field.ofs]);
                 ret /= 100;
                 return true;
             case 'C':
-                ret = (T)*reinterpret_cast<const uint16_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint16_t*>(&msg.body[field.ofs]);
                 ret /= 100;
                 return true;
             case 'e':
-                ret = (T)*reinterpret_cast<const int32_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const int32_t*>(&msg.body[field.ofs]);
                 ret /= 100;
                 return true;
             case 'E':
-                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body.data()[field.ofs]);
+                ret = (T)*reinterpret_cast<const uint32_t*>(&msg.body[field.ofs]);
                 ret /= 100;
                 return true;
         }
@@ -182,12 +185,12 @@ public:
         assert(fieldnames.size() == fmtstr.length());
 
         int ofs = 0;
-        for (int i=0; i<fieldnames.size(); i++) {
+        for (size_t i=0; i<fieldnames.size(); i++) {
             int size =  _fieldsizemap[fmtstr[i]];
             new_format.fields.push_back({fmtstr[i], fieldnames[i], ofs, size});
             ofs += size;
         }
-        cout << new_format.name << " " << fmtstr << " " << ofs << " " << new_format.len-3 << endl;
+//         cout << new_format.name << " " << fmtstr << " " << ofs << " " << new_format.len-3 << endl;
         assert(ofs == new_format.len-3);
         _formats[int(new_format.type)] = new_format;
     }
@@ -217,39 +220,45 @@ private:
     }
 
     bool parse_next(message_t& msg) {
-        uint8_t header[3];
-        _if.read((char*)header, 3);
+        if (_logdata_len-_ofs < 3) {
+            return false;
+        }
+        uint8_t* header = &_logdata[_ofs];
 
         int skip_count = 0;
-        stringstream bytes;
         while (header[0] != HEAD_BYTE1 || header[1] != HEAD_BYTE2 || (_formats.find(header[2]) == _formats.end())) {
-            bytes << " " << setw(2) << setfill('0') << hex << (int)header[0];
-            skip_count++;
-            _if.seekg(-2,_if.cur);
-            if (!_if.read((char*)header, 3)) {
-                cout << "read failed 1" << endl;
+            if (_logdata_len-_ofs < 3) {
                 return false;
             }
+            skip_count++;
+            _ofs++;
+            header = &_logdata[_ofs];
         }
+
         if (skip_count > 0) {
-            cerr << "skipped " << skip_count << " bytes: " << bytes.str() << endl;
+            cerr << "skipped " << skip_count << " bytes" << endl;
         }
+
+        _ofs += 3;
 
         msg.type = header[2];
 
-        int body_len = _formats[msg.type].len-3;
+        size_t body_len = _formats[msg.type].len-3;
 
-        msg.body.resize(body_len);
-
-        if(!_if.read(reinterpret_cast<char*>(msg.body.data()), body_len)) {
-            cout << "read failed" << endl;
+        if(_logdata_len-_ofs < body_len) {
             return false;
         }
+
+        msg.body = &_logdata[_ofs];
+
+        _ofs += body_len;
 
         return true;
     }
 
-    istream& _if;
+    uint8_t* _logdata;
+    size_t _logdata_len;
+    size_t _ofs {};
     map<uint8_t,Format> _formats;
     BlockingCollection<message_t> _msgqueue;
 
