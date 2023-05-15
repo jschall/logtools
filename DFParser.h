@@ -13,6 +13,7 @@
 #include "BlockingCollection.h"
 #pragma GCC diagnostic pop
 #include <thread>
+#include "dtoa_milo.h"
 
 using namespace std;
 using namespace code_machina;
@@ -41,6 +42,9 @@ public:
         vector<Field> fields;
     } Format;
 
+    vector<Format::Field>& get_fields(message_t msg) {
+        return _formats[msg.type].fields;
+    }
 
     DFParser(const DFParser&) = delete;
     DFParser& operator=(const DFParser&) = delete;
@@ -67,6 +71,14 @@ public:
         return _formats[msg.type].name;
     }
 
+    uint8_t* get_message_pointer_including_header(const message_t& msg) {
+        return msg.body-3;
+    }
+
+    size_t get_message_size_including_header(const message_t& msg) {
+        return _formats[msg.type].len;
+    }
+
     Format::Field* get_field_definition(const message_t& msg, const string& fieldname) {
         auto& fields = _formats[msg.type].fields;
         for (auto& f : fields) {
@@ -78,11 +90,7 @@ public:
     }
 
     template <typename T>
-    bool get_scalar_field(const message_t& msg, const string& fieldname, T& ret) {
-        Format::Field* field_ptr = get_field_definition(msg, fieldname);
-        if (!field_ptr) return false;
-        Format::Field& field = *field_ptr;
-
+    bool get_scalar_field(const message_t& msg, const Format::Field& field, T& ret) {
         switch(field.typechar) {
             case 'B':
             case 'M':
@@ -138,6 +146,22 @@ public:
         }
         return false;
     }
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, uint8_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, int8_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, uint16_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, int16_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, uint32_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, int32_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, int64_t& ret);
+    template<typename T> bool get_scalar_field(const message_t& msg, const Format::Field& field, uint64_t& ret);
+
+    template <typename T>
+    bool get_scalar_field(const message_t& msg, const string& fieldname, T& ret) {
+        Format::Field* field_ptr = get_field_definition(msg, fieldname);
+        if (!field_ptr) return false;
+        return get_scalar_field(msg, *field_ptr, ret);
+
+    }
     template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint8_t& ret);
     template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, int8_t& ret);
     template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint16_t& ret);
@@ -147,25 +171,121 @@ public:
     template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, int64_t& ret);
     template<typename T> bool get_scalar_field(const message_t& msg, const string& fieldname, uint64_t& ret);
 
-    bool get_string_field(const message_t& msg, const string& fieldname, string& ret) {
-        Format::Field* field_ptr = get_field_definition(msg, fieldname);
-        if (!field_ptr) return false;
-        Format::Field& field = *field_ptr;
-
+    bool get_string_field(const message_t& msg, const Format::Field& field, string& ret) {
         switch(field.typechar) {
             case 'n':
             case 'N':
             case 'Z': {
-                ret = "";
-                for (int i=field.ofs; i<field.ofs+field.len; i++) {
-                    if (msg.body[i] == 0) break;
-                    ret.push_back((char)msg.body[i]);
-                }
+                char str[65];
+                memcpy(str,&msg.body[field.ofs],field.len);
+                str[field.len] = 0;
+                ret = str;
                 return true;
             }
         }
         return false;
     }
+
+    bool get_string_field(const message_t& msg, const string& fieldname, string& ret) {
+        Format::Field* field_ptr = get_field_definition(msg, fieldname);
+        if (!field_ptr) return false;
+        return get_string_field(msg, *field_ptr, ret);
+    }
+
+    bool field_is_signed_int(const Format::Field& field) {
+        switch(field.typechar) {
+            case 'b':
+            case 'h':
+            case 'i':
+            case 'q':
+                return true;
+        }
+        return false;
+    }
+
+    bool field_is_unsigned_int(const Format::Field& field) {
+        switch(field.typechar) {
+            case 'B':
+            case 'M':
+            case 'H':
+            case 'I':
+            case 'Q':
+                return true;
+        }
+        return false;
+    }
+
+    bool field_is_float(const Format::Field& field) {
+        switch(field.typechar) {
+            case 'f':
+            case 'L':
+            case 'd':
+            case 'c':
+            case 'C':
+            case 'e':
+            case 'E':
+                return true;
+        }
+        return false;
+    }
+
+    bool field_is_string(const Format::Field& field) {
+        switch(field.typechar) {
+            case 'n':
+            case 'N':
+            case 'Z':
+                return true;
+        }
+        return false;
+    }
+
+    string get_value_string(const message_t& msg, const Format::Field& field) {
+        static char buffer[256];
+
+        /*if (field_is_signed_int(field)) {
+            ss.seekp(ios::beg);
+            int64_t val;
+            if(get_scalar_field(msg, field, val)) {
+
+                return ss.str().c_str();
+            }
+        } else if (field_is_unsigned_int(field)) {
+            ss.seekp(ios::beg);
+            uint64_t val;
+            if(get_scalar_field(msg, field, val)) {
+                ss << val << '\0';
+                return ss.str().c_str();
+            }
+        } else if (field_is_float(field)) {
+            ss.seekp(ios::beg);
+            double val;
+            if(get_scalar_field(msg, field, val)) {
+                ss << val << '\0';
+                return ss.str().c_str();
+            }
+        } else */if(field_is_string(field)) {
+            string ret;
+            if (get_string_field(msg, field, ret)) {
+                return ret;
+            }
+        } else {
+            double val;
+
+            if(get_scalar_field(msg, field, val)) {
+                if (isnan(val)) {
+                    return "nan";
+                } else if (isinf(val)) {
+                    return "inf";
+                }
+                dtoa_milo(val,buffer);
+                return buffer;
+            }
+        }
+
+        return "";
+    }
+
+
 
     void process_fmt(const message_t& msg) {
         Format new_format;
@@ -178,10 +298,15 @@ public:
         get_string_field(msg, "Format", fmtstr);
         vector<string> fieldnames;
 
+
         string colstr;
         get_string_field(msg, "Columns", colstr);
         boost::split(fieldnames, colstr, boost::is_any_of(","));
 
+//         cout << fmtstr << endl;
+//         cout << colstr << endl;
+//         cout << fieldnames.size() << endl;
+//         cout << fieldnames.size() << endl;
         assert(fieldnames.size() == fmtstr.length());
 
         int ofs = 0;
@@ -246,6 +371,8 @@ private:
         size_t body_len = _formats[msg.type].len-3;
 
         if(_logdata_len-_ofs < body_len) {
+            cerr << "skipped " << _logdata_len-_ofs+3 << " bytes at end of log, msg size " << body_len << endl;
+
             return false;
         }
 

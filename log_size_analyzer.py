@@ -46,4 +46,4 @@ msg_usage.append(("_TOTAL_MAG", magtot))
 msg_usage.sort(key=lambda x:x[1], reverse=True)
 
 for k,v in msg_usage:
-    print k,v,"%.1f%%" % ((100.*v)/tot)
+    print(k,v,"%.1f%%" % ((100.*v)/tot))

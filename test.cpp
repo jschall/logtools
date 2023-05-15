@@ -12,11 +12,14 @@ int main(int argc, char** argv) {
         cout << "too few arguments" << endl;
         return 1;
     }
-    ifstream f(argv[1], ifstream::binary);
-    char buf[1024*16];
-    f.rdbuf()->pubsetbuf(buf, sizeof(buf));
 
-    DFLogParser parser(f);
+    int fp = open(argv[1], O_RDONLY, 0);
+    size_t logdata_len = lseek(fp, 0, SEEK_END);
+    lseek(fp, 0, SEEK_SET);
+    uint8_t* logdata = (uint8_t*)mmap(0, logdata_len, PROT_READ, MAP_SHARED, fp, 0);
+    madvise(logdata, logdata_len, POSIX_MADV_SEQUENTIAL);
+
+    DFParser parser(logdata, logdata_len);
 
 
     json TimeUS = json::array();

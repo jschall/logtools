@@ -4,7 +4,7 @@ from math import *
 import matplotlib.pyplot as plt
 from collections import deque
 
-def retrieve_timeseries(fname, field):
+def retrieve_timeseries(fname, field, instance=None):
     f = open(fname,'rb')
     data = f.read()
     f.close()
@@ -20,26 +20,13 @@ def retrieve_timeseries(fname, field):
         if m is None:
             break
 
-        if m.get_type() == msgname:
+        if m.get_type() == msgname and (instance is None or m['Instance'] == instance):
             ret.append(m[fieldname])
 
     return ret
 
-
-blanking_time = 2.
-freefall_thresh = 3.
-trigger = -15.
-pre_trigger = 0.01
-post_trigger = 0.06
-
-event_length = pre_trigger + post_trigger
-
-blanking_time_us = blanking_time*1e6
-pre_trigger_us = pre_trigger*1e6
-post_trigger_us = post_trigger*1e6
-
-time_us = retrieve_timeseries(argv[1], "ACC3.TimeUS")
-acc = retrieve_timeseries(argv[1], "ACC3.AccZ")
+voltr = retrieve_timeseries(argv[1], "BAT.VoltR", 0)
+currtot = retrieve_timeseries(argv[1], "BAT.CurrTot", 0)
 
 events = []
 
